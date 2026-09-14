@@ -1,11 +1,14 @@
 const fetch = require('node-fetch');
 const https = require('https');
 
+// Cloudflare SSL bypass for Direct IP routing
 const agent = new https.Agent({
-  rejectUnauthorized: false
+  rejectUnauthorized: false,
+  checkServerIdentity: () => undefined
 });
 
 module.exports = async (req, res) => {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -39,15 +42,17 @@ module.exports = async (req, res) => {
     formData.append('form_fields[search]', searchQuery.trim());
     formData.append('referrer', 'https://simownership.org/search/');
 
-    const response = await fetch('https://simownership.org/wp-admin/admin-ajax.php', {
+    // Direct IP Call with host header to bypass Cloudflare Captcha
+    const response = await fetch('https://188.114.96.6/wp-admin/admin-ajax.php', {
       method: 'POST',
       headers: {
+        'Host': 'simownership.org',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Origin': 'https://simownership.org',
         'Referer': 'https://simownership.org/search/',
         'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
       },
       body: formData.toString(),
       agent: agent
@@ -55,34 +60,41 @@ module.exports = async (req, res) => {
 
     const responseText = await response.text();
 
-    // Check if JSON response
+    let rawData;
     try {
-      const rawData = JSON.parse(responseText);
-
-      return res.status(200).json({
-        success: true,
-        developer: "RAJA X DEVELOPER",
-        channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-        debug_info: {
-          is_json: true,
-          http_status: response.status
-        },
-        raw_response: rawData
-      });
+      rawData = JSON.parse(responseText);
     } catch (e) {
-      // If non-JSON (HTML/Cloudflare response), capture debug information
-      return res.status(200).json({
+      return res.status(403).json({
         success: false,
         developer: "RAJA X DEVELOPER",
         channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-        debug_info: {
-          is_json: false,
-          http_status: response.status,
-          content_type: response.headers.get('content-type')
-        },
-        debug_html_sample: responseText.substring(0, 500)
+        error: "Cloudflare blocked IP. Try Method 2 (PHP/Alwaysdata Proxy)."
       });
     }
+
+    // Extracting multi-record array for CNIC and Single Mobile result
+    let resultsArray = [];
+    if (rawData && rawData.data) {
+      if (rawData.data.data && Array.isArray(rawData.data.data.results)) {
+        resultsArray = rawData.data.data.results;
+      } else if (Array.isArray(rawData.data.results)) {
+        resultsArray = rawData.data.results;
+      } else if (Array.isArray(rawData.data)) {
+        resultsArray = rawData.data;
+      }
+    } else if (rawData && Array.isArray(rawData.results)) {
+      resultsArray = rawData.results;
+    }
+
+    return res.status(200).json({
+      success: true,
+      developer: "RAJA X DEVELOPER",
+      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
+      count: resultsArray.length,
+      data: {
+        results: resultsArray
+      }
+    });
 
   } catch (error) {
     return res.status(500).json({
