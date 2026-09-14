@@ -68,8 +68,8 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      developer: "RAJA X DEVELOPER",
-      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
+      developer: "Ramzan Ahsan",
+      group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
       count: resultsArray.length,
       data: {
         results: resultsArray
@@ -79,8 +79,8 @@ module.exports = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      developer: "RAJA X DEVELOPER",
-      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
+      developer: "Ramzan Ahsan",
+      group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
       error: error.message
     });
   }
