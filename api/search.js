@@ -1,7 +1,6 @@
 const fetch = require('node-fetch');
 const https = require('https');
 
-// SSL certificate verification bypass for direct IP routing
 const agent = new https.Agent({
   rejectUnauthorized: false
 });
@@ -38,38 +37,58 @@ module.exports = async (req, res) => {
     formData.append('post_id', '413');
     formData.append('form_id', '5e17544');
     formData.append('queried_id', '413');
-    formData.append('form_fields[search]', searchQuery);
+    formData.append('form_fields[search]', searchQuery.trim());
     formData.append('referrer', 'https://simownership.org/search/');
 
-    // Direct IP Call with Host Header (curl --resolve replacement)
-    const response = await fetch('https://188.114.96.6/wp-admin/admin-ajax.php', {
+    // Request using direct domain to prevent Cloudflare direct-IP HTML blocking
+    const response = await fetch('https://simownership.org/wp-admin/admin-ajax.php', {
       method: 'POST',
       headers: {
-        'Host': 'simownership.org',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Origin': 'https://simownership.org',
         'Referer': 'https://simownership.org/search/',
         'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       body: formData.toString(),
       agent: agent
     });
 
-    const rawData = await response.json();
+    // Extract text first to check if response is HTML or JSON
+    const responseText = await response.text();
 
+    let rawData;
+    try {
+      rawData = JSON.parse(responseText);
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        developer: "RAJA X DEVELOPER",
+        channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
+        error: "Server returned non-JSON response (Cloudflare/HTML block or invalid query)."
+      });
+    }
+
+    // Extract multi-data array dynamically
     let resultsArray = [];
-    if (rawData && rawData.data && rawData.data.data && Array.isArray(rawData.data.data.results)) {
-      resultsArray = rawData.data.data.results;
-    } else if (rawData && rawData.data && Array.isArray(rawData.data.results)) {
-      resultsArray = rawData.data.results;
+
+    if (rawData && rawData.data) {
+      if (rawData.data.data && Array.isArray(rawData.data.data.results)) {
+        resultsArray = rawData.data.data.results;
+      } else if (Array.isArray(rawData.data.results)) {
+        resultsArray = rawData.data.results;
+      } else if (Array.isArray(rawData.data)) {
+        resultsArray = rawData.data;
+      }
+    } else if (Array.isArray(rawData.results)) {
+      resultsArray = rawData.results;
     }
 
     return res.status(200).json({
       success: true,
-      developer: "Ramzan Ahsan",
-      group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
+      developer: "RAJA X DEVELOPER",
+      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
       count: resultsArray.length,
       data: {
         results: resultsArray
@@ -79,8 +98,8 @@ module.exports = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      developer: "Ramzan Ahsan",
-      group: "https://chat.whatsapp.com/FiZBn0BykHX47d1iHLOay1",
+      developer: "RAJA X DEVELOPER",
+      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
       error: error.message
     });
   }
