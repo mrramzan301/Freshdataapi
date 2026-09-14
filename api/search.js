@@ -6,7 +6,6 @@ const agent = new https.Agent({
 });
 
 module.exports = async (req, res) => {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -40,7 +39,6 @@ module.exports = async (req, res) => {
     formData.append('form_fields[search]', searchQuery.trim());
     formData.append('referrer', 'https://simownership.org/search/');
 
-    // Request using direct domain to prevent Cloudflare direct-IP HTML blocking
     const response = await fetch('https://simownership.org/wp-admin/admin-ajax.php', {
       method: 'POST',
       headers: {
@@ -55,45 +53,36 @@ module.exports = async (req, res) => {
       agent: agent
     });
 
-    // Extract text first to check if response is HTML or JSON
     const responseText = await response.text();
 
-    let rawData;
+    // Check if JSON response
     try {
-      rawData = JSON.parse(responseText);
+      const rawData = JSON.parse(responseText);
+
+      return res.status(200).json({
+        success: true,
+        developer: "RAJA X DEVELOPER",
+        channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
+        debug_info: {
+          is_json: true,
+          http_status: response.status
+        },
+        raw_response: rawData
+      });
     } catch (e) {
-      return res.status(500).json({
+      // If non-JSON (HTML/Cloudflare response), capture debug information
+      return res.status(200).json({
         success: false,
         developer: "RAJA X DEVELOPER",
         channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-        error: "Server returned non-JSON response (Cloudflare/HTML block or invalid query)."
+        debug_info: {
+          is_json: false,
+          http_status: response.status,
+          content_type: response.headers.get('content-type')
+        },
+        debug_html_sample: responseText.substring(0, 500)
       });
     }
-
-    // Extract multi-data array dynamically
-    let resultsArray = [];
-
-    if (rawData && rawData.data) {
-      if (rawData.data.data && Array.isArray(rawData.data.data.results)) {
-        resultsArray = rawData.data.data.results;
-      } else if (Array.isArray(rawData.data.results)) {
-        resultsArray = rawData.data.results;
-      } else if (Array.isArray(rawData.data)) {
-        resultsArray = rawData.data;
-      }
-    } else if (Array.isArray(rawData.results)) {
-      resultsArray = rawData.results;
-    }
-
-    return res.status(200).json({
-      success: true,
-      developer: "RAJA X DEVELOPER",
-      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-      count: resultsArray.length,
-      data: {
-        results: resultsArray
-      }
-    });
 
   } catch (error) {
     return res.status(500).json({
