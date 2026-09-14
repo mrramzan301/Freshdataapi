@@ -1,12 +1,7 @@
-const fetch = require('node-fetch');
-const https = require('https');
-
-const agent = new https.Agent({
-  rejectUnauthorized: false,
-  checkServerIdentity: () => undefined
-});
+const { exec } = require('child_process');
 
 module.exports = async (req, res) => {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -31,46 +26,40 @@ module.exports = async (req, res) => {
     });
   }
 
-  try {
-    const bodyParams = new URLSearchParams();
-    bodyParams.append('action', 'elementor_pro_forms_send_form');
-    bodyParams.append('post_id', '413');
-    bodyParams.append('form_id', '5e17544');
-    bodyParams.append('queried_id', '413');
-    bodyParams.append('form_fields[search]', searchQuery.trim());
-    bodyParams.append('referrer', 'https://simownership.org/search/');
+  // Sanitize input for security
+  const safeQuery = String(searchQuery).replace(/[^0-9]/g, '');
 
-    const response = await fetch('https://188.114.96.6/wp-admin/admin-ajax.php', {
-      method: 'POST',
-      headers: {
-        'Host': 'simownership.org',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Origin': 'https://simownership.org',
-        'Referer': 'https://simownership.org/search/',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache'
-      },
-      body: bodyParams.toString(),
-      agent: agent
-    });
+  // Exact cURL command execution using system binary
+  const curlCommand = `curl -s --resolve simownership.org:443:188.114.96.6 'https://simownership.org/wp-admin/admin-ajax.php' \
+    -H 'Accept: application/json, text/javascript, */*; q=0.01' \
+    -H 'Origin: https://simownership.org' \
+    -H 'Referer: https://simownership.org/search/' \
+    -H 'X-Requested-With: XMLHttpRequest' \
+    --data 'action=elementor_pro_forms_send_form&post_id=413&form_id=5e17544&queried_id=413&form_fields[search]=${safeQuery}&referrer=https://simownership.org/search/'`;
 
-    const responseText = await response.text();
+  exec(curlCommand, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        developer: "RAJA X DEVELOPER",
+        channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
+        error: "Execution error: " + error.message
+      });
+    }
 
     let rawData;
     try {
-      rawData = JSON.parse(responseText);
+      rawData = JSON.parse(stdout);
     } catch (e) {
       return res.status(403).json({
         success: false,
         developer: "RAJA X DEVELOPER",
         channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-        error: "Cloudflare blocked IP on CNIC query."
+        error: "Non-JSON response from target server."
       });
     }
 
+    // Dynamic Multi-Result Handling for CNIC & Single Mobile
     let resultsArray = [];
     if (rawData && rawData.data) {
       if (rawData.data.data && Array.isArray(rawData.data.data.results)) {
@@ -93,13 +82,5 @@ module.exports = async (req, res) => {
         results: resultsArray
       }
     });
-
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      developer: "RAJA X DEVELOPER",
-      channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-      error: error.message
-    });
-  }
+  });
 };
