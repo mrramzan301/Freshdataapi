@@ -1,14 +1,12 @@
 const fetch = require('node-fetch');
 const https = require('https');
 
-// Cloudflare SSL bypass for Direct IP routing
 const agent = new https.Agent({
   rejectUnauthorized: false,
   checkServerIdentity: () => undefined
 });
 
 module.exports = async (req, res) => {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -34,15 +32,14 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const formData = new URLSearchParams();
-    formData.append('action', 'elementor_pro_forms_send_form');
-    formData.append('post_id', '413');
-    formData.append('form_id', '5e17544');
-    formData.append('queried_id', '413');
-    formData.append('form_fields[search]', searchQuery.trim());
-    formData.append('referrer', 'https://simownership.org/search/');
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('action', 'elementor_pro_forms_send_form');
+    bodyParams.append('post_id', '413');
+    bodyParams.append('form_id', '5e17544');
+    bodyParams.append('queried_id', '413');
+    bodyParams.append('form_fields[search]', searchQuery.trim());
+    bodyParams.append('referrer', 'https://simownership.org/search/');
 
-    // Direct IP Call with host header to bypass Cloudflare Captcha
     const response = await fetch('https://188.114.96.6/wp-admin/admin-ajax.php', {
       method: 'POST',
       headers: {
@@ -52,9 +49,11 @@ module.exports = async (req, res) => {
         'Referer': 'https://simownership.org/search/',
         'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache'
       },
-      body: formData.toString(),
+      body: bodyParams.toString(),
       agent: agent
     });
 
@@ -68,11 +67,10 @@ module.exports = async (req, res) => {
         success: false,
         developer: "RAJA X DEVELOPER",
         channel: "https://whatsapp.com/channel/0029Vb8CIl36buMHcPt7a40D",
-        error: "Cloudflare blocked IP. Try Method 2 (PHP/Alwaysdata Proxy)."
+        error: "Cloudflare blocked IP on CNIC query."
       });
     }
 
-    // Extracting multi-record array for CNIC and Single Mobile result
     let resultsArray = [];
     if (rawData && rawData.data) {
       if (rawData.data.data && Array.isArray(rawData.data.data.results)) {
